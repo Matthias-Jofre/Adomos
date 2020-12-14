@@ -174,7 +174,7 @@ class Main:
         self.boton_buscar = Button(self.wind, font=fuente_2, image=self.b_buscar, fg="black",text="Limpiar", command = self.buscarCliente)
         self.boton_buscar.place(x=620, y=80)
         self.boton_actualizar = Button(self.wind, font=fuente_2, image=self.b_actualizar, fg="black",text="Limpiar", command = self.sumarValores)
-        self.boton_actualizar.place(x=773, y=624)
+        self.boton_actualizar.place(x=773, y=644)
 
         # Botones Usuario
         self.b_domo = Image.open('./imagenes/domo.png')
@@ -262,22 +262,23 @@ class Main:
         self.tree.column("#3", width=100, minwidth=100, stretch=tk.NO)
         self.tree.column("#4", width=100, minwidth=100, stretch=tk.NO)
         self.tree.column("#5", width=100, minwidth=100, stretch=tk.NO)
-        self.tree.heading('#1', text='Material ID', anchor=tk.CENTER)
+        self.tree.heading('#1', text='ID Material', anchor=tk.CENTER)
         self.tree.heading('#2', text='Nombre', anchor=tk.CENTER)
         self.tree.heading('#3', text='Tipo', anchor=tk.CENTER)
         self.tree.heading('#4', text='Cantidad', anchor=tk.CENTER)
         self.tree.heading('#5', text='Valor', anchor=tk.CENTER)
 
-        
+        Button(self.wind, text="Agregar material", state=NORMAL, command = self.ventanaAgregarMaterialDomo).place(x=379, y=597, width = 260, height = 25)
+        Button(self.wind, text="Borrar material", state=NORMAL).place(x=638, y=597, width = 260, height = 25)
 
         self.boton_agregar_domo = Button(
             self.wind, text="Ingresar Domo", command=self.AgregarDomo, state=DISABLED)
         self.boton_agregar_domo.place(x=500, y=700)
 
         Label(self.wind, font=fuente_2, text="Presupuesto: ",
-              bg="white", fg="black").place(x=450, y=620)    
+              bg="white", fg="black").place(x=450, y=640)    
         self.cliente_presupuesto = Entry(self.wind, state = 'readonly')
-        self.cliente_presupuesto.place(x=570, y=625, width = 200, height = 25)                          
+        self.cliente_presupuesto.place(x=570, y=645, width = 200, height = 25)                          
         # Fin ~ Presupuesto de domo
 
     def mostrarFrecuencia(self):
@@ -324,7 +325,7 @@ class Main:
         for element in records:
             self.tree.delete(element)
         db_rows = c.execute(
-            'SELECT * FROM materiales ORDER BY id_material DESC')
+            'SELECT * FROM material ORDER BY id_material DESC')
         #rellenando datos
         for row in db_rows:
             self.tree.insert('', 0, values=(
@@ -590,6 +591,35 @@ class Main:
         conn.commit()
         self.edit_wind_material.destroy()
         self.getMateriales()
+
+    def ventanaAgregarMaterialDomo(self):
+        self.wind_material_domo = Toplevel()
+        self.wind_material_domo.geometry('802x152')
+        self.wind_material_domo.resizable(0, 0)
+        self.wind_material_domo.config(bg="white")
+        
+        columnas = ("#1", "#2,", "#3,", "#4,")
+        self.tabla_materiales = ttk.Treeview(
+            self.wind_material_domo, show='headings', height=5, columns=columnas)
+        self.tabla_materiales.grid(row=4, column=0, columnspan=2)
+        self.tabla_materiales.heading('#1', text='ID', anchor=CENTER)
+        self.tabla_materiales.heading('#2', text='Nombre', anchor=CENTER)
+        self.tabla_materiales.heading('#3', text='Tipo', anchor=CENTER)
+        self.tabla_materiales.heading('#4', text='Precio', anchor=CENTER)
+        
+        ttk.Button(self.wind_material_domo, text = 'Agregar', command = self.agregarMaterialAlDomo).place(x=1, y=127, width = 800, height = 25)
+        
+        self.getMateriales() 
+
+    def agregarMaterialAlDomo(self):
+        id_material = self.tabla_materiales.item(self.tabla_materiales.selection())['values'][0]
+        nombre_material = self.tabla_materiales.item(self.tabla_materiales.selection())['values'][1]
+        tipo_material = self.tabla_materiales.item(self.tabla_materiales.selection())['values'][2]
+        precio_material = self.tabla_materiales.item(self.tabla_materiales.selection())['values'][3]
+
+        c.execute('INSERT INTO material VALUES(?, ?, ?, ?)', (id_material, nombre_material, tipo_material, precio_material))
+        conn.commit()
+        self.get_materiales()
 
 if __name__ == '__main__':
     window = Tk()
