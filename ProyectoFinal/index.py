@@ -12,6 +12,8 @@ from datetime import datetime
 
 from matplotlib import pyplot
 
+import numpy as np
+
 conn = sqlite3.connect('geodesikfinal.db')
 c = conn.cursor()
 
@@ -703,10 +705,12 @@ class Main:
         #self.get_materiales()
 
     def traerCantidad(self):
+        ro = [1,2,3]
         c.execute('select count(tipo) from domo where tipo = "invernadero"')
         cantidad = c.fetchall()
         for row in cantidad:
             row[0]
+        ro[0] = row[0]
         cantidad_invernadero = row[0]
         cantidad_invernadero = int(cantidad_invernadero)        
         print(cantidad_invernadero)
@@ -715,6 +719,7 @@ class Main:
         cantidad = c.fetchall()
         for row in cantidad:
             row[0]
+        ro[1] = row[0]            
         cantidad_habitacional = row[0]
         cantidad_habitacional = int(cantidad_habitacional)
         print(cantidad_habitacional)
@@ -723,6 +728,7 @@ class Main:
         cantidad = c.fetchall()
         for row in cantidad:
             row[0]
+        ro[2] = row[0]                
         cantidad_exposicion = row[0]
         cantidad_exposicion = int(cantidad_exposicion)         
         print(cantidad_exposicion)
@@ -735,6 +741,81 @@ class Main:
         pyplot.title('Grafica de domos vendidos según su tipo')
         #pyplot.legend(labels = tipos)
         pyplot.show()
+
+####################################################################################################################
+        
+        c.execute('select presupuesto from presupuesto join domo using(id_domo) where tipo = "invernadero"')
+        cantidad = c.fetchall()
+        # for row in cantidad:
+        #     print(row)
+        inv = np.array(cantidad).astype(np.int)
+        print(inv)
+        c.execute('select presupuesto from presupuesto join domo using(id_domo) where tipo = "habitacional"')
+        cantidad = c.fetchall()
+        hab = np.array(cantidad).astype(np.int)
+        print(hab)
+        c.execute('select presupuesto from presupuesto join domo using(id_domo) where tipo = "exposicion"')
+        cantidad = c.fetchall()
+        exp = np.array(cantidad).astype(np.int)
+        print(exp)        
+        
+        totalVtas= np.array(np.concatenate((inv,hab,exp)))
+        print(totalVtas)
+        # inv = np.array(cantidad_invernadero).astype(np.int)
+        # hab = np.array(cantidad_habitacional).astype(np.int)
+        # exp = np.array(cantidad_exposicion).astype(np.int)
+        
+        # print(ro)
+        # inv = np.array(ro[0]).astype(np.int)
+        # hab = np.array(ro[1]).astype(np.int)
+        # exp = np.array(ro[2]).astype(np.int)    
+        # print(inv,hab,exp)    
+        # print(totalVtas= np.array(np.concatenate((inv,hab,exp))))
+
+        mayorTodos=totalVtas.max() # Valor máximo
+        menorTodos=totalVtas.min() # Valor mínimo
+        mediaTodos=totalVtas.mean() # Valor medio
+        stdTodos=totalVtas.std() # Desviación típica de los elementos
+        sumaTodos=totalVtas.sum() # Suma de todos los elementos        
+        fuente_2 = font.Font(family="Calibri", size=15, weight="normal")
+        fuente_3 = font.Font(family="Calibri", size=15, weight="normal")
+        mediainv=inv.mean()
+        mediahab=hab.mean()
+        mediaexp=exp.mean()
+        Txt_1 = StringVar()
+        Txt_2 = StringVar()
+        Txt_3 = StringVar()
+        Txt_4 = StringVar()
+        Txt_5 = StringVar()
+        Txt_6 = StringVar()
+        Txt_7 = StringVar()
+        Txt_8 = StringVar()
+        Txt_9 = StringVar()
+        Txt_0 = StringVar()
+        popup = Toplevel()
+        popup.geometry("600x400")
+        #popup.title("Análitica de Ventas ")
+        Txt_0.set("Estadisticas de Ventas")
+        Txt_1.set("Mayor:"+str(mayorTodos))
+        Txt_2.set("Menor:"+str(menorTodos))
+        Txt_3.set("Media:"+str(mediaTodos))
+        Txt_4.set("Std:"+str(stdTodos))
+        Txt_5.set("Total:"+str(sumaTodos))
+        Txt_6.set("Medias x Tipos ")
+        Txt_7.set("invernadero:"+str(mediainv))
+        Txt_8.set("habitacional:"+str(mediahab))
+        Txt_9.set("exposicion:"+str(mediaexp))
+        Label(popup,font=fuente_2, fg="Blue",textvariable = Txt_0).place(x=30,y=15)
+        Label(popup,font=fuente_3, textvariable = Txt_1).place(x=60,y=60)
+        Label(popup,font=fuente_3, textvariable = Txt_2).place(x=60,y=90)
+        Label(popup,font=fuente_3, textvariable = Txt_3).place(x=60,y=120)
+        Label(popup, font=fuente_3,textvariable = Txt_4).place(x=60,y=150)
+        Label(popup, font=fuente_3,textvariable = Txt_5).place(x=60,y=180)
+        Label(popup, font=fuente_2,fg="Blue",textvariable = Txt_6).place(x=30,y=210)
+        Label(popup, font=fuente_3,textvariable = Txt_7).place(x=60,y=260)
+        Label(popup, font=fuente_3,textvariable = Txt_8).place(x=60,y=290)
+        Label(popup, font=fuente_3,textvariable = Txt_9).place(x=60,y=320)
+
 
     def ventanaEstaadisticas(self):
         self.wind_estadisticas = Toplevel()
@@ -794,3 +875,54 @@ if __name__ == '__main__':
     window = Tk()
     application = Main(window)
     window.mainloop()
+
+
+# def analisisDatos():
+# global mayorTodos,menorTodos,mediaTodos,stdTodos,sumaTodos ,mediaHamb_1,mediaHamb_2,mediaHamb_3
+# anHamb_1 = np.array(vendidasFull).astype(np.int)
+# anHamb_2 = np.array(vendidasVeg).astype(np.int)
+# anHamb_3 = np.array(vendidasHawai).astype(np.int)
+# totalVtas= np.array(np.concatenate((anHamb_1,anHamb_2,anHamb_3)))
+# #-------- ESTADISTICAS todas hamburguesas
+# mayorTodos=totalVtas.max() # Valor máximo
+# menorTodos=totalVtas.min() # Valor mínimo
+# mediaTodos=totalVtas.mean() # Valor medio
+# stdTodos=totalVtas.std() # Desviación típica de los elementos
+# sumaTodos=totalVtas.sum() # Suma de todos los elementos
+
+# mediaHambFull=anHamb_1.mean()
+# mediaHambVeg=anHamb_2.mean()
+# mediaHambHawai=anHamb_3.mean()
+# Txt_1 = StringVar()
+# Txt_2 = StringVar()
+# Txt_3 = StringVar()
+# Txt_4 = StringVar()
+# Txt_5 = StringVar()
+# Txt_6 = StringVar()
+# Txt_7 = StringVar()
+# Txt_8 = StringVar()
+# Txt_9 = StringVar()
+# Txt_0 = StringVar()
+# popup = Toplevel()
+# popup.geometry("600x400")
+# popup.title("Análitica de Ventas ")
+# Txt_0.set("Estadisticas de Ventas")
+# Txt_1.set("Mayor:"+str(mayorTodos))
+# Txt_2.set("Menor:"+str(menorTodos))
+# Txt_3.set("Media:"+str(mediaTodos))
+# Txt_4.set("Std:"+str(stdTodos))
+# Txt_5.set("Total:"+str(sumaTodos))
+# Txt_6.set("Medias x Tipos ")
+# Txt_7.set("Full:"+str(mediaHambFull))
+# Txt_8.set("Vegatariana:"+str(mediaHambVeg))
+# Txt_9.set("Hawai:"+str(mediaHambHawai))
+# Label(popup,font=fuente_2, fg="Blue",textvariable = Txt_0).place(x=30,y=15)
+# Label(popup,font=fuente_3, textvariable = Txt_1).place(x=60,y=60)
+# Label(popup,font=fuente_3, textvariable = Txt_2).place(x=60,y=90)
+# Label(popup,font=fuente_3, textvariable = Txt_3).place(x=60,y=120)
+# Label(popup, font=fuente_3,textvariable = Txt_4).place(x=60,y=150)
+# Label(popup, font=fuente_3,textvariable = Txt_5).place(x=60,y=180)
+# Label(popup, font=fuente_2,fg="Blue",textvariable = Txt_6).place(x=30,y=210)
+# Label(popup, font=fuente_3,textvariable = Txt_7).place(x=60,y=260)
+# Label(popup, font=fuente_3,textvariable = Txt_8).place(x=60,y=290)
+# Label(popup, font=fuente_3,textvariable = Txt_9).place(x=60,y=320)
