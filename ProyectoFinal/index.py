@@ -10,7 +10,9 @@ import sqlite3
 from datetime import date
 from datetime import datetime
 
-conn = sqlite3.connect('geodesik.db')
+from matplotlib import pyplot
+
+conn = sqlite3.connect('geodesikfinal.db')
 c = conn.cursor()
 
 
@@ -190,7 +192,7 @@ class Main:
         self.b_estadisticas = Image.open('./imagenes/estadistica.png')
         self.b_estadisticas = self.b_estadisticas.resize((90, 90), Image.ANTIALIAS)
         self.b_estadisticas = ImageTk.PhotoImage(self.b_estadisticas)
-        self.boton_estadisticas = Button(self.wind, font=fuente_2, image=self.b_estadisticas, fg="white",text="Limpiar", bg = "white", state=DISABLED)
+        self.boton_estadisticas = Button(self.wind, font=fuente_2, image=self.b_estadisticas, fg="white",text="Limpiar", bg = "white", state=DISABLED, command = self.ventanaEstaadisticas)
         self.boton_estadisticas.place(x=80, y=630)        
         self.b_editar = Image.open('./imagenes/formulario.png')
         self.b_editar = self.b_editar.resize((90, 90), Image.ANTIALIAS)
@@ -265,21 +267,40 @@ class Main:
         self.tree.heading('#1', text='ID Material', anchor=tk.CENTER)
         self.tree.heading('#2', text='Nombre', anchor=tk.CENTER)
         self.tree.heading('#3', text='Tipo', anchor=tk.CENTER)
-        self.tree.heading('#4', text='Cantidad', anchor=tk.CENTER)
+        self.tree.heading('#4', text='Valor', anchor=tk.CENTER)
         self.tree.heading('#5', text='Valor', anchor=tk.CENTER)
 
         Button(self.wind, text="Agregar material", state=NORMAL, command = self.ventanaAgregarMaterialDomo).place(x=379, y=597, width = 260, height = 25)
-        Button(self.wind, text="Borrar material", state=NORMAL).place(x=638, y=597, width = 260, height = 25)
+        Button(self.wind, text="Borrar material", state=NORMAL, command = self.borrarMaterialDelPresupuesto).place(x=638, y=597, width = 260, height = 25)
 
-        self.boton_agregar_domo = Button(
-            self.wind, text="Ingresar Domo", command=self.AgregarDomo, state=DISABLED)
-        self.boton_agregar_domo.place(x=500, y=700)
+        # self.boton_agregar_domo = Button(
+        #     self.wind, text="Ingresar Domo", command=self.AgregarDomo, state=DISABLED)
+        # self.boton_agregar_domo.place(x=500, y=700)
 
         Label(self.wind, font=fuente_2, text="Presupuesto: ",
               bg="white", fg="black").place(x=450, y=640)    
         self.cliente_presupuesto = Entry(self.wind, state = 'readonly')
-        self.cliente_presupuesto.place(x=570, y=645, width = 200, height = 25)                          
+        self.cliente_presupuesto.place(x=570, y=645, width = 200, height = 25)       
+
+        self.ingresar = Image.open('./imagenes/ingresar.png')
+        self.ingresar = self.ingresar.resize((40, 40), Image.ANTIALIAS)
+        self.ingresar = ImageTk.PhotoImage(self.ingresar)
+        self.boton_agregar_domo = Button(self.wind, font=fuente_2, image=self.ingresar, fg="white",text="Limpiar", bg = "white", state=DISABLED, command=self.AgregarDomo)
+        self.boton_agregar_domo.place(x=700, y=690)    
+
+        self.rechazar = Image.open('./imagenes/eliminar.png')
+        self.rechazar = self.rechazar.resize((40, 40), Image.ANTIALIAS)
+        self.rechazar = ImageTk.PhotoImage(self.rechazar)
+        self.boton_eliminar_domo = Button(self.wind, font=fuente_2, image=self.rechazar, fg="white",text="Limpiar", bg = "white", state=DISABLED, command = self.botonRechazarPresupuesto)
+        self.boton_eliminar_domo.place(x=500, y=690)  
+        
         # Fin ~ Presupuesto de domo
+
+        self.salir = Image.open('./imagenes/salir.png')
+        self.salir = self.salir.resize((30, 30), Image.ANTIALIAS)
+        self.salir = ImageTk.PhotoImage(self.salir)
+        self.boton_salir= Button(self.wind, font=fuente_2, image=self.salir, fg="white",text="Limpiar", bg = "white", state=DISABLED, command = self.botonSalir)
+        self.boton_salir.place(x=290, y=250)          
 
     def mostrarFrecuencia(self):
         print(self.radioFrecuencia.get())
@@ -300,6 +321,8 @@ class Main:
             for row in data:
                 row
             #self.radioLeido1.config(state = NORMAL)
+            #self.entrada_rut_usuario = row[0]
+            #print(self.entrada_rut_usuario)
             self.entrada_dto_nombre.config(
                 textvariable=StringVar(self.wind, value=row[1]))
             self.entrada_dto_apellido.config(
@@ -310,10 +333,14 @@ class Main:
                 textvariable=StringVar(self.wind, value=row[4]))
             self.boton_domo.config(state=NORMAL)
             self.boton_herramientas.config(state=NORMAL)
+            self.boton_estadisticas.config(state=NORMAL)
             print('no esta vacia')
             #print(row[(0)])
-            self.entrada_rut.delete(0, END)
+            #self.entrada_rut.delete(0, END)
             self.entrada_contraseña.delete(0, END)
+            self.entrada_rut.config(state = 'readonly')
+            self.entrada_contraseña.config(state = 'readonly')
+            self.boton_salir.config(state = NORMAL)
             return True
         else:
             print('esta vacia')
@@ -325,7 +352,8 @@ class Main:
         for element in records:
             self.tree.delete(element)
         db_rows = c.execute(
-            'SELECT * FROM material ORDER BY id_material DESC')
+            'select id_material, nombre, tipo, precio from materialesxdomo join materiales USING(id_material) where id_domo = ? ', (self.domo_id.get(), ))
+            #'SELECT * FROM material ORDER BY id_material DESC')
         #rellenando datos
         for row in db_rows:
             self.tree.insert('', 0, values=(
@@ -333,11 +361,11 @@ class Main:
             #print(row)
 
     def generarPresupuesto(self):
+        self.boton_eliminar_domo.config(state=NORMAL)
         self.boton_domo.config(state=DISABLED)
         self.cliente_rut.config(state=NORMAL)
-        self.get_materiales()
-        c.execute(
-            "insert into domo (frecuencia, metros, tipo) values (1, 2, 'asd')")
+        c.execute("insert into domo (frecuencia, metros, tipo, rut_usuario) values (?, ?, ?, ?)", (1, 1, 'asd', self.entrada_rut.get()))  
+        #values (1, 2, 'asd')")
         c.execute('select id_domo from domo')
         conn.commit()
         data = c.fetchall()
@@ -346,6 +374,8 @@ class Main:
                 print(row)
         self.domo_id.config(textvariable=StringVar(self.wind, value=row[0]))
         self.domo_fecha.config(textvariable=StringVar(self.wind, value=date.today()))
+        self.boton_salir.config(state = DISABLED) 
+        #self.get_materiales()
 
     def AgregarDomo(self):
         print(self.radioFrecuencia.get())
@@ -354,6 +384,33 @@ class Main:
         c.execute('update domo set frecuencia = ?, metros = ?, tipo = ? where id_domo = ?',
                   (self.radioFrecuencia.get(), self.radioDiametro.get(), self.radioTipo.get(), self.domo_id.get()))
         conn.commit()
+        c.execute('insert into presupuesto values (?, ?)', (self.domo_id.get(), self.cliente_presupuesto.get()))
+        conn.commit()
+        self.boton_domo.config(state=NORMAL)
+        self.boton_agregar_domo.config(state=DISABLED)      
+        self.boton_eliminar_domo.config(state=DISABLED)
+        self.cliente_rut.config(state=DISABLED)
+        #Limpiando tabla
+        records = self.tree.get_children()
+        for element in records:
+            self.tree.delete(element) 
+        self.cliente_presupuesto.config(textvariable=StringVar())         
+        self.cliente_nombre.config(textvariable=StringVar())         
+        self.cliente_telefono.config(textvariable=StringVar())         
+        self.cliente_rutb.config(textvariable=StringVar())         
+        self.cliente_apellido.config(textvariable=StringVar())      
+        self.domo_id.config(textvariable=StringVar())
+        self.domo_fecha.config(textvariable=StringVar())   
+        self.frec1.config(state=DISABLED)
+        self.frec2.config(state=DISABLED)
+        self.frec3.config(state=DISABLED)
+        self.diam1.config(state=DISABLED)
+        self.diam2.config(state=DISABLED)
+        self.diam3.config(state=DISABLED)
+        self.tipo1.config(state=DISABLED)
+        self.tipo2.config(state=DISABLED)
+        self.tipo3.config(state=DISABLED)   
+        self.boton_salir.config(state = NORMAL)              
 
     def ingresarCliente(self):
         fuente_2 = font.Font(family="Calibri", size=15, weight="normal")
@@ -455,6 +512,8 @@ class Main:
                 textvariable=StringVar(self.wind, value=row[3]))
             #self.boton_ingresar_domo.config(state=NORMAL)
             print('no esta vacia')
+            c.execute('update domo set rut_cliente = ? where id_domo = ?', (row[2], self.domo_id.get()))
+            conn.commit()
             self.cliente_rut.delete(0, END)
             #print(row[(0)])
             #self.entrada_rut.delete(0, END)
@@ -469,6 +528,7 @@ class Main:
             self.tipo2.config(state=NORMAL)
             self.tipo3.config(state=NORMAL)
             self.boton_agregar_domo.config(state=NORMAL)
+            self.boton_eliminar_domo.config(state=NORMAL)
             return True
         else:
             print('esta vacia')
@@ -476,7 +536,18 @@ class Main:
 
     def sumarValores(self):
         self.cliente_presupuesto.config(
-            textvariable=StringVar(self.wind, self.radioDiametro.get()*self.radioFrecuencia.get()))        
+            textvariable=StringVar(self.wind, self.radioDiametro.get()*self.radioFrecuencia.get()))   
+        c.execute('select sum(precio) total from materialesxdomo join materiales USING(id_material) where id_domo = ?', (self.domo_id.get(), ))
+        ewe = c.fetchall()
+        #print (ewe) 
+        for row in ewe:
+            row[0]
+        mat = row[0]
+        mat = int(mat)
+        total = (self.radioDiametro.get()*self.radioFrecuencia.get()) + mat
+        #print(type(mat))
+        self.cliente_presupuesto.config(textvariable=StringVar(self.wind, value=total))
+            #textvariable=StringVar((self.wind, self.radioDiametro.get()*self.radioFrecuencia.get())))  
 
     def BotonAgregarMaterial(self):
         self.wind_material = Toplevel()
@@ -613,13 +684,111 @@ class Main:
 
     def agregarMaterialAlDomo(self):
         id_material = self.tabla_materiales.item(self.tabla_materiales.selection())['values'][0]
-        nombre_material = self.tabla_materiales.item(self.tabla_materiales.selection())['values'][1]
-        tipo_material = self.tabla_materiales.item(self.tabla_materiales.selection())['values'][2]
-        precio_material = self.tabla_materiales.item(self.tabla_materiales.selection())['values'][3]
+        # nombre_material = self.tabla_materiales.item(self.tabla_materiales.selection())['values'][1]
+        # tipo_material = self.tabla_materiales.item(self.tabla_materiales.selection())['values'][2]
+        # precio_material = self.tabla_materiales.item(self.tabla_materiales.selection())['values'][3]
 
-        c.execute('INSERT INTO material VALUES(?, ?, ?, ?)', (id_material, nombre_material, tipo_material, precio_material))
+        c.execute(
+            'INSERT INTO materialesxdomo (id_domo, id_material) VALUES(?, ?)', (self.domo_id.get(), id_material))
+            #'INSERT INTO material VALUES(?, ?, ?, ?)', (id_material, nombre_material, tipo_material, precio_material))
         conn.commit()
         self.get_materiales()
+
+    def borrarMaterialDelPresupuesto(self):
+        self.tree.item(self.tree.selection())['values'][1]
+        self.id_material_borrado = self.tree.item(self.tree.selection())['text']
+        print(self.id_material_borrado)
+        # c.execute('DELETE FROM materialesxdomo WHERE id_material = ?', (self.id_material, ))
+        # conn.commit()
+        #self.get_materiales()
+
+    def traerCantidad(self):
+        c.execute('select count(tipo) from domo where tipo = "invernadero"')
+        cantidad = c.fetchall()
+        for row in cantidad:
+            row[0]
+        cantidad_invernadero = row[0]
+        cantidad_invernadero = int(cantidad_invernadero)        
+        print(cantidad_invernadero)
+        
+        c.execute('select count(tipo) from domo where tipo = "habitacional"')
+        cantidad = c.fetchall()
+        for row in cantidad:
+            row[0]
+        cantidad_habitacional = row[0]
+        cantidad_habitacional = int(cantidad_habitacional)
+        print(cantidad_habitacional)
+
+        c.execute('select count(tipo) from domo where tipo = "exposicion"')
+        cantidad = c.fetchall()
+        for row in cantidad:
+            row[0]
+        cantidad_exposicion = row[0]
+        cantidad_exposicion = int(cantidad_exposicion)         
+        print(cantidad_exposicion)
+
+        tipos = ('invernadero', 'exposicion', 'habitacional')
+        tamaños = (cantidad_invernadero, cantidad_exposicion, cantidad_habitacional)
+        colores = ('red', 'blue', 'yellow')
+        pyplot.pie(tamaños, colors = colores, labels = tipos, autopct = '%1.1f%%')
+        pyplot.axis('equal')
+        pyplot.title('Grafica de domos vendidos según su tipo')
+        #pyplot.legend(labels = tipos)
+        pyplot.show()
+
+    def ventanaEstaadisticas(self):
+        self.wind_estadisticas = Toplevel()
+        self.wind_estadisticas.geometry('220x150')
+        self.wind_estadisticas.resizable(0, 0)
+        self.wind_estadisticas.config(bg="white")
+        ttk.Button(self.wind_estadisticas, text = 'Estadisticas por tipo de Domo', command = self.traerCantidad).place(x=10, y=10, width = 200, height = 25)        
+        ttk.Button(self.wind_estadisticas, text = 'Estadisticas de ventas generales').place(x=10, y=50, width = 200, height = 25)   
+        ttk.Button(self.wind_estadisticas, text = 'Estadisticas de ventas por empleado').place(x=10, y=90, width = 200, height = 25)   
+
+    def botonRechazarPresupuesto(self):
+        self.boton_domo.config(state=NORMAL)
+        self.boton_agregar_domo.config(state=DISABLED)      
+        self.boton_eliminar_domo.config(state=DISABLED)
+        self.cliente_rut.config(state=DISABLED)
+        #Limpiando tabla
+        records = self.tree.get_children()
+        for element in records:
+            self.tree.delete(element) 
+        self.cliente_presupuesto.config(textvariable=StringVar())         
+        self.cliente_nombre.config(textvariable=StringVar())         
+        self.cliente_telefono.config(textvariable=StringVar())         
+        self.cliente_rutb.config(textvariable=StringVar())         
+        self.cliente_apellido.config(textvariable=StringVar())      
+        self.domo_id.config(textvariable=StringVar())
+        self.domo_fecha.config(textvariable=StringVar())  
+        self.frec1.config(state=DISABLED)
+        self.frec2.config(state=DISABLED)
+        self.frec3.config(state=DISABLED)
+        self.diam1.config(state=DISABLED)
+        self.diam2.config(state=DISABLED)
+        self.diam3.config(state=DISABLED)
+        self.tipo1.config(state=DISABLED)
+        self.tipo2.config(state=DISABLED)
+        self.tipo3.config(state=DISABLED)    
+        self.boton_salir.config(state = NORMAL)                              
+
+    def botonSalir(self):
+        self.entrada_rut.config(state = NORMAL)
+        self.entrada_contraseña.config(state = NORMAL)
+        self.entrada_rut.delete(0, END)
+        self.entrada_contraseña.delete(0, END)
+        self.boton_salir.config(state = DISABLED)  
+        self.boton_domo.config(state=DISABLED)
+        self.boton_herramientas.config(state=DISABLED)
+        self.boton_estadisticas.config(state=DISABLED)    
+        self.entrada_dto_nombre.config(
+            textvariable=StringVar())
+        self.entrada_dto_apellido.config(
+            textvariable=StringVar())
+        self.entrada_dto_correo.config(
+            textvariable=StringVar())
+        self.entrada_dto_telefono.config(
+            textvariable=StringVar())                  
 
 if __name__ == '__main__':
     window = Tk()
